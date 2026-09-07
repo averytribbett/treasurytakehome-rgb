@@ -48,9 +48,7 @@ export function BatchPage() {
     if (ready.length === 0 || processing) return;
     setProcessing(true);
     try {
-      for (const slot of ready) {
-        await runners.current[slot.id]?.run();
-      }
+      await Promise.all(ready.map((slot) => runners.current[slot.id]?.run()));
     } finally {
       setProcessing(false);
     }
@@ -66,8 +64,9 @@ export function BatchPage() {
   return (
     <main>
       <PageIntro title="Check a batch">
-        Add each photo and its application text. Use Add another for the next pair. Process labels checks the batch. A
-        batch takes longer than five seconds, so the bar at the top shows which label is running.
+        Add each photo and its application text. Use Add another for the next pair. Process labels checks every ready
+        pair at the same time. Each label still finishes in about five seconds. The bar at the top shows how the batch
+        is going.
       </PageIntro>
 
       <BatchProgress slots={slots} reports={reports} />

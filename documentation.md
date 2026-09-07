@@ -1,81 +1,91 @@
 # Approach, tools, and assumptions
 
-Label Check is a standalone prototype for TTB compliance agents. An agent adds a label photo and the matching application text. The API reads the photo, pulls the expected fields out of the paste, and scores each field as pass, needs review, or fail. The tool recommends. The agent decides.
+I built Label Check as a standalone tool for TTB compliance agents. You add a label photo and the application text. The API reads the photo, pulls the expected fields out of the paste, and scores each field as pass, needs review, or fail. The tool makes a recommendation. The agent still decides.
 
-The assignment asked for a working core, not a COLA rebuild. There is no database, no login, and no COLA integration.
+This is a working prototype, not a COLA rebuild. There is no database, no login, and no COLA integration.
 
-## Approach
+## Why the first screen is two giant buttons
 
-The product is two pages after a first-choice landing.
+Sarah said the UI had to be something her mom could figure out, and that half the team is over 50. I did not want a dashboard with a pile of options. The first screen asks one question, "What do you want to check?", and the only answers are two large buttons: **One label** and **A batch**.
 
-- One label: one photo and one application paste. Checking waits until **Process label**.
-- A batch: the same pair, repeated. Add another starts the next pair so each photo stays matched with its own text. Checking waits until **Process labels**.
+That is the whole landing page on purpose. If Dave can see two doors and pick one, he is already in the right flow.
 
-That batch shape is intentional. The assignment never described a daily report, a spreadsheet, or image URLs. This prototype assumes agents still pair each photo with its application text by hand. Peak season arrives as a pile of COLA records, so the UI copies that: add a pair, add another, then Process labels.
+## One label and a batch
 
-Compare is a shared service, not a second product. The frontend is a Vite React app. The API is Express. They run as two processes. The browser calls `POST /api/compare`. There is no extract endpoint. Extraction lives inside compare.
+- **One label:** one photo and one application paste. Nothing runs until you click **Process label**.
+- **A batch:** the same pair, repeated. **Add another** starts the next pair so each photo stays with its own text. Nothing runs until you click **Process labels**.
 
-Images can come from a file or from the clipboard. COLA is on-screen software. Agents often copy a screenshot and never save a PNG.
+I did not build a CSV or a zip upload. The assignment never described a batch file format. Peak season is still a pile of COLA records, so the UI copies that: add a pair, add another, then process.
+
+A check is one shared path either way. The browser calls `POST /api/compare`. There is no extract endpoint. Reading the photo happens inside compare.
+
+You can choose a file or paste a screenshot. COLA is on-screen software, so a lot of agents will copy the label and never save a PNG.
+
+## Speed
+
+Sarah said if it is not back in about five seconds, nobody will use it. One label is usually around 2–4 seconds with OpenAI warm, so it stays under that bar.
+
+A batch uses the same call, but ready pairs run at the same time. Each label is still in that 2–4 second range. A stack of four is closer to one label than to four labels in a line. The sticky bar at the top shows how many are running so the wait is visible instead of feeling stuck.
+
+Most of the 2–4 seconds is OpenAI looking at the image, not our server. I already turned reasoning off on `gpt-5.6-luna` (`reasoning_effort: "none"`) so it does not sit and think before it reads the label. Tesseract is faster (~0.4s once warm) but it misses bold and a lot of hard photos, so it is the fallback, not the default.
+
+If someone needed the OpenAI call itself to be faster than that, the next step would be an enterprise plan with higher throughput. I do not think that is worth the extra cost here. We are already under Sarah's five second bar, and a batch is parallel, so the money would buy a little less waiting on each image, not a different product.
 
 ## Tools
 
-The email asked for tools used. This includes the stack and the editor.
-
-| Piece | Choice | Why |
+| Piece | Choice | Why I picked it |
 | --- | --- | --- |
-| Editor | Cursor | AI-assisted development. Used to write, refactor, and test the prototype faster while keeping the product decisions human. |
-| Language | TypeScript, Node 20 | One language on the client and the server. Typed compare rules. |
-| Frontend | Vite, React 19, React Router | Small SPA with two obvious paths: one label and a batch. |
-| API | Express, multer | File upload and a small HTTP surface. Easy to host on a Node box. |
-| Vision | OpenAI `gpt-5.6-luna` when `OPENAI_API_KEY` is set | Better at angled, dark, or glare-heavy labels than raw OCR. |
-| Fallback | Tesseract.js on the API | Works if the cloud call fails or the key is missing. |
-| Compare | Deterministic TypeScript | Agents can explain a verdict without trusting a model to score. |
-| Tests | Vitest on the API | Compare rules and parsers stay pinned. |
-| Samples | PNG plus matching `.txt` in `samples/` | Reviewers can test from files in the repo. |
-| Source control | Git, GitHub | Deliverable 1 is a repository they can clone. |
+| Editor | Cursor | Faster scaffolding, refactors, and tests. I still made the product calls. |
+| Language | TypeScript, Node 20 | Same language on the client and the server. Compare rules stay typed. |
+| Frontend | Vite, React 19, React Router | Small app with two obvious paths. |
+| API | Express, multer | File upload and a small HTTP surface. Easy to host on a regular Node box. |
+| Vision | OpenAI `gpt-5.6-luna` when `OPENAI_API_KEY` is set | Better on angled, dark, or glare-heavy labels than raw OCR. Also the only path that can see bold. |
+| Fallback | Tesseract.js on the API | Still works if the cloud call fails or the key is missing. Marcus said the network may block ML endpoints. |
+| Compare | Plain TypeScript | I did not want a model deciding pass or fail. An agent should be able to read the reason. |
+| Tests | Vitest on the API | Pins the scoring rules and the parsers. |
+| Samples | PNG plus matching `.txt` in `samples/` | Reviewers can try it from files in the repo. |
+| Source control | Git, GitHub | Deliverable 1 is a repo they can clone. |
 
-Cursor was used as an AI pair programmer: scaffolding, UI copy, tests, and iteration on the batch flow. The scoring rules, the pair-by-hand batch assumption, the ZDR note, and the "tool recommends, agent decides" stance came from the stakeholder notes, not from the model. That split matters for an AI specialist role. The product uses AI to read a label. It does not use AI to decide pass or fail.
+I used Cursor as a pair programmer for boilerplate, UI copy, tests, and some of the batch flow. The scoring rules, the two-button landing, the pair-by-hand batch, and the "recommend, don't decide" stance came from the stakeholder notes.
 
-The OpenAI key stays in `api/.env`. It is never sent to Vite. Marcus's notes said the network may block cloud ML. If the OpenAI call fails, the API falls back to Tesseract and still returns a result.
+The OpenAI key lives in `api/.env`. It never goes to Vite. If OpenAI fails, the API falls back to Tesseract and still returns a result.
 
 ## How a check runs
 
-1. The agent adds a photo and pastes application text (a COLA dump or text copied from a PDF).
-2. `parseApplicationText` reads labeled keys such as `Brand name:` and falls back to the same heuristics used on OCR text. `GOVERNMENT WARNING:` is not treated as a field key, so the prefix stays on the expected warning.
+1. Add a photo and paste the application text (a COLA dump or text copied from a PDF).
+2. `parseApplicationText` looks for labeled keys like `Brand name:`. If those are missing it uses the same heuristics as OCR. `GOVERNMENT WARNING:` is not treated as a field key, so the prefix stays on the expected warning.
 3. `extractFromImage` tries OpenAI Vision, then Tesseract.
 4. `compareFields` scores brand, class/type, ABV, net contents, and the government warning.
 5. Overall is the worst field: fail beats needs review beats pass.
 
-Single checks often finish near Sarah's five second bar when OpenAI is warm. A batch of several labels will take longer than five seconds. The UI does not hide that. One label shows a checking panel with a running timer. A batch keeps a sticky bar that names the pair in progress (`Checking label 2 of 4`) and lists each pair as not started, checking, pass, needs review, fail, or error.
-
-`Process labels` starts the check for every pair that has a photo and application text. It runs them one after another. The batch page keeps a progress list. Fail and needs-review reasons show in parentheses next to the status. It does not open the full field table for each pair.
+One label shows a checking panel with a timer. A batch keeps a list: not started, checking, pass, needs review, fail, or error. **Process labels** starts every ready pair together. Fail and needs-review reasons show in parentheses next to the status. The batch page does not open the full field table for every pair.
 
 ## Compare rules
 
-These match the interview notes more than a generic fuzzy match.
+I wrote these from the interview notes, not from a generic fuzzy match.
 
-- **Government warning.** Exact text after whitespace collapse. The words `GOVERNMENT WARNING` on the label must be all caps. Jenny's title-case example is a fail. When OpenAI Vision ran, `warningBold` is also checked: not bold is a fail. Tesseract cannot see stroke weight, so that path passes the text check and says bold could not be checked.
-- **Brand and class/type.** Exact match is pass. Same letters, different capitalization (`STONE'S THROW` vs `Stone's Throw`) is needs review, because Dave said that needs judgment. Extra spaces or punctuation that disappear after normalize is pass. Low similarity is fail.
+- **Government warning.** Exact text after collapsing extra spaces. The first two words on the label have to be `GOVERNMENT WARNING` in all caps. Jenny's title-case example is a fail. When OpenAI ran, `warningBold` is also checked: not bold is a fail. Tesseract cannot see stroke weight, so that path passes the wording and says bold could not be checked.
+- **Brand and class/type.** Exact match is pass. Same letters, different capitalization (`STONE'S THROW` vs `Stone's Throw`) is needs review. Dave said that needs judgment. Extra spaces or punctuation that disappear after normalize is pass. Low similarity is fail.
 - **ABV and net contents.** Numbers are parsed (`45% Alc./Vol.` is `45`, `750 mL` is `750`). An unreadable number is needs review, not fail.
-- **Unreadable photo.** If extraction is blank, every field is needs review and the banner asks for a better image.
+- **Unreadable photo.** If extraction comes back blank, every field is needs review and the banner asks for a better image.
 
 ## Assumptions
 
-- This is a proof of concept, not a COLA feature. Marcus said not to integrate with COLA.
-- Nothing sensitive is stored. Photos and application text live in memory for the request, then are discarded.
-- **OpenAI and live data.** The prototype calls the OpenAI API. Before this ran on real applications, TTB would sign a zero data retention (ZDR) agreement so label images and application text are not retained or used to train models. Until that paper exists, treat the cloud path as a demo only. Local Tesseract is the path that never leaves the host.
-- **Batch is not a file upload.** The assignment did not give a batch file format. Agents add each photo and its application text, then click Process labels.
+- Proof of concept only. Marcus said not to integrate with COLA.
+- Nothing sensitive is stored. Photos and application text live in memory for the request, then they are discarded.
+- **OpenAI and live data.** This prototype calls the OpenAI API. Before it ran on real applications, TTB would need a zero data retention (ZDR) agreement so images and text are not kept or used for training. Until that exists, treat the cloud path as a demo. Tesseract is the path that never leaves the host.
+- **Batch is not a file upload.** Agents add each photo and its application text, then click Process labels.
 - Agents work in COLA and can copy a screenshot. File upload is still there for a saved PNG.
-- Application text is pasted. A printed PDF is something you copy from, not a magic daily report the API splits apart.
+- Application text is pasted. A printed PDF is something you copy from, not a daily report the API splits apart.
 - Reviewers will use the files in `samples/` to try the product.
 
 ## Limitations
 
-- Bold on the warning is only checked when OpenAI Vision ran. Tesseract has no font-weight signal, so that path cannot fail a regular-weight warning.
+- Bold on the warning is only checked when OpenAI Vision ran.
 - Tesseract is weaker on huge bold type, glare, and steep angles. OpenAI is better there, and still not perfect.
 - The first Tesseract call after process start can be slow. The API warms a worker on listen.
 - There is no user account, audit log, or retention policy beyond "do not store."
-- The API allows CORS from any origin so a separately hosted frontend can call it. That is fine for a prototype, not for production.
+- The API allows CORS from any origin so a separately hosted frontend can call it. Fine for a prototype, not for production.
 
 ## Test labels
 

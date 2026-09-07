@@ -32,15 +32,19 @@ export function BatchProgress({ slots, reports }: Props) {
     const report = reports[slot.id];
     return Boolean(report?.result || report?.error);
   }).length;
-  const checkingIndex = slots.findIndex((slot) => reports[slot.id]?.busy);
-  const busyCount = slots.filter((slot) => reports[slot.id]?.busy).length;
+  const checkingIndexes = slots
+    .map((slot, index) => (reports[slot.id]?.busy ? index + 1 : null))
+    .filter((index): index is number => index !== null);
+  const busyCount = checkingIndexes.length;
 
   if (finished === 0 && busyCount === 0) return null;
 
   const headline =
-    checkingIndex >= 0
-      ? `Checking label ${checkingIndex + 1} of ${total}`
-      : `Finished ${finished} of ${total}`;
+    busyCount === 0
+      ? `Finished ${finished} of ${total}`
+      : busyCount === 1
+        ? `Checking label ${checkingIndexes[0]} of ${total}`
+        : `Checking ${busyCount} labels (${finished} of ${total} done)`;
 
   const percent = total === 0 ? 0 : Math.round((finished / total) * 100);
 
@@ -48,8 +52,8 @@ export function BatchProgress({ slots, reports }: Props) {
     <div className="batch-progress" role="status" aria-live="polite">
       <p className="batch-progress-title">{headline}</p>
       <p className="batch-progress-copy">
-        {checkingIndex >= 0
-          ? "A batch is slower than one label. This bar shows which pair is running."
+        {busyCount > 0
+          ? "Ready pairs run at the same time. This bar shows how the batch is going."
           : "Every pair that is ready has a result."}
       </p>
       <div className="batch-progress-track" aria-hidden="true">

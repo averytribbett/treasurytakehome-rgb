@@ -6,6 +6,7 @@ const CLASS_HINT =
   /\b(bourbon|whiskey|whisky|vodka|gin|rum|tequila|brandy|liqueur|wine|ale|lager|beer|malt|spirit|cognac|mezcal)\b/i;
 
 let tesseractWorker: Worker | null = null;
+let tesseractLock: Promise<void> = Promise.resolve();
 
 export function parseOcrText(raw: string): LabelFields {
   const lines = raw
@@ -144,9 +145,19 @@ async function getWorker(): Promise<Worker> {
 }
 
 async function extractWithTesseract(image: Buffer): Promise<string> {
-  const worker = await getWorker();
-  const result = await worker.recognize(image);
-  return result.data.text ?? "";
+  let release!: () => void;
+  const previous = tesseractLock;
+  tesseractLock = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await previous;
+  try {
+    const worker = await getWorker();
+    const result = await worker.recognize(image);
+    return result.data.text ?? "";
+  } finally {
+    release();
+  }
 }
 
 function isBlank(fields: LabelFields): boolean {
