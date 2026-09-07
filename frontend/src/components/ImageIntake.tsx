@@ -80,7 +80,7 @@ export function ImageIntake({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/png,image/jpeg,image/webp,image/gif,.png,.jpg,.jpeg,.webp,.gif"
         hidden
         onChange={(event) => {
           const files = Array.from(event.target.files ?? []).filter((file) =>
