@@ -25,6 +25,8 @@ You can choose a file or paste a screenshot. COLA is on-screen software, so a lo
 
 Sarah said if it is not back in about five seconds, nobody will use it. One label is usually around 2–4 seconds with OpenAI warm, so it stays under that bar.
 
+The hosted API is on Render's free tier. If nobody has hit it in a while, the box goes to sleep. The first label after that can take 30–60 seconds while the service wakes up. That is the host, not the model. After it is up, later labels are back in the 2–4 second range.
+
 A batch uses the same call, but ready pairs run at the same time. Each label is still in that 2–4 second range. A stack of four is closer to one label than to four labels in a line. The sticky bar at the top shows how many are running so the wait is visible instead of feeling stuck.
 
 Most of the 2–4 seconds is OpenAI looking at the image, not our server. I already turned reasoning off on `gpt-5.6-luna` (`reasoning_effort: "none"`) so it does not sit and think before it reads the label. Tesseract is faster (~0.4s once warm) but it misses bold and a lot of hard photos, so it is the fallback, not the default.
@@ -84,6 +86,7 @@ I wrote these from the interview notes, not from a generic fuzzy match.
 - Bold on the warning is only checked when OpenAI Vision ran.
 - Tesseract is weaker on huge bold type, glare, and steep angles. OpenAI is better there, and still not perfect.
 - The first Tesseract call after process start can be slow. The API warms a worker on listen.
+- The live API is on a free Render box. The first request after it sleeps can take 30–60 seconds. After that, labels are back under five seconds.
 - There is no user account, audit log, or retention policy beyond "do not store."
 - The API allows CORS from any origin so a separately hosted frontend can call it. Fine for a prototype, not for production.
 
