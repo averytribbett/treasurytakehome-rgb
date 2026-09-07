@@ -8,7 +8,7 @@ The assignment asked for a working core, not a COLA rebuild. There is no databas
 
 The product is two pages after a first-choice landing.
 
-- One label: one photo and one application paste. Compare runs when both are present.
+- One label: one photo and one application paste. Checking waits until **Process label**.
 - A batch: the same pair, repeated. Add another starts the next pair so each photo stays matched with its own text. Checking waits until **Process labels**.
 
 That batch shape is intentional. The assignment never described a daily report, a spreadsheet, or image URLs. This prototype assumes agents still pair each photo with its application text by hand. Peak season arrives as a pile of COLA records, so the UI copies that: add a pair, add another, then Process labels.

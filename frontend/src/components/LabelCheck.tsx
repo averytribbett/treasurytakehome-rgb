@@ -23,7 +23,6 @@ interface Props {
   title?: string;
   windowPaste?: boolean;
   active?: boolean;
-  autoCompare?: boolean;
   showResults?: boolean;
   onActivate?: () => void;
   onRemove?: () => void;
@@ -39,7 +38,6 @@ export const LabelCheck = forwardRef<LabelCheckHandle, Props>(function LabelChec
     title,
     windowPaste,
     active,
-    autoCompare = true,
     showResults = true,
     onActivate,
     onRemove,
@@ -55,7 +53,6 @@ export const LabelCheck = forwardRef<LabelCheckHandle, Props>(function LabelChec
   const [error, setError] = useState("");
   const fileRef = useRef<File | null>(null);
   const textRef = useRef("");
-  const textTimer = useRef<number>(0);
   const requestId = useRef(0);
   const onReportRef = useRef(onReport);
   onReportRef.current = onReport;
@@ -107,26 +104,15 @@ export const LabelCheck = forwardRef<LabelCheckHandle, Props>(function LabelChec
     }
   }
 
-  async function onPick(next: File) {
-    const chosen = takeFile(next);
-    if (autoCompare && readyToCompare(chosen, applicationText)) {
-      await runCompare(chosen, applicationText);
-    }
+  function onPick(next: File) {
+    takeFile(next);
   }
 
   function onText(next: string) {
     setApplicationText(next);
     textRef.current = next;
-    if (!autoCompare) {
-      setResult(null);
-      setError("");
-      return;
-    }
-    window.clearTimeout(textTimer.current);
-    textTimer.current = window.setTimeout(() => {
-      const image = fileRef.current;
-      if (readyToCompare(image, next)) void runCompare(image, next);
-    }, 400);
+    setResult(null);
+    setError("");
   }
 
   return (
@@ -160,7 +146,7 @@ export const LabelCheck = forwardRef<LabelCheckHandle, Props>(function LabelChec
           windowPaste={windowPaste}
           active={active}
           onActivate={onActivate}
-          onImage={(file) => void onPick(file)}
+          onImage={onPick}
         >
           {preview ? (
             <img src={preview} alt={title ? `${title} photo` : "Label you selected"} />
@@ -175,6 +161,21 @@ export const LabelCheck = forwardRef<LabelCheckHandle, Props>(function LabelChec
           <ApplicationPaste value={applicationText} onChange={onText} />
         </div>
       </div>
+
+      {showResults ? (
+        <div className="actions review-actions">
+          <button
+            className="btn"
+            type="button"
+            disabled={busy || !readyToCompare(file, applicationText)}
+            onClick={() => {
+              if (readyToCompare(file, applicationText)) void runCompare(file, applicationText);
+            }}
+          >
+            Process label
+          </button>
+        </div>
+      ) : null}
 
       {error ? <div className="error">{error}</div> : null}
       {showResults && result && !busy ? <Results result={result} /> : null}

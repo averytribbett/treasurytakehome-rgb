@@ -10,7 +10,7 @@ export function HomePage() {
       <div className="doors">
         <Link className="door" to="/review">
           <h2>One label</h2>
-          <p>Add one bottle photo, a file or a screenshot, and the application text.</p>
+          <p>Add one bottle photo, a file or a screenshot, and the application text. Then Process label.</p>
         </Link>
         <Link className="door" to="/batch">
           <h2>A batch</h2>

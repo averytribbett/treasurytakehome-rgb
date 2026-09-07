@@ -292,6 +292,10 @@ textarea {
   align-items: center;
 }
 
+.review-actions {
+  justify-content: flex-end;
+}
+
 .btn {
   min-height: 52px;
   padding: 12px 22px;

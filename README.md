@@ -39,7 +39,7 @@ The Vite app calls the API at `VITE_API_URL` from `frontend/.env`.
 
 Extract is a shared service used by compare. There is no extract endpoint.
 
-Add the label as a file or a pasted screenshot (Ctrl+V / Cmd+V), then paste the application or PDF text into one box. The API pulls brand, class/type, ABV, net contents, and the warning out of that dump, then compares them to the photo.
+Add the label as a file or a pasted screenshot (Ctrl+V / Cmd+V), then paste the application or PDF text into one box. **Process label** starts the check. The API pulls brand, class/type, ABV, net contents, and the warning out of that dump, then compares them to the photo.
 
 A batch is the same pair, repeated. Use **Add another** so each photo stays matched with its own application text. **Process labels** checks every pair that is ready. Fail and needs-review reasons show next to the status.
 

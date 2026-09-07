@@ -79,7 +79,6 @@ export function BatchPage() {
             runners.current[slot.id] = handle;
           }}
           title={`Label ${index + 1}`}
-          autoCompare={false}
           showResults={false}
           windowPaste={activeId === slot.id}
           active={activeId === slot.id}
