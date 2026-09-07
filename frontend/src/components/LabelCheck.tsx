@@ -1,5 +1,6 @@
 import type { CheckResult } from "../types";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { isTypingTarget } from "../clipboard";
 import { statusReason, verdictWord } from "../lib";
 import { compareLabel } from "../services/compareService";
 import { ApplicationPaste } from "./ApplicationPaste";
@@ -66,6 +67,24 @@ export const LabelCheck = forwardRef<LabelCheckHandle, Props>(function LabelChec
   useEffect(() => {
     onReportRef.current?.({ file, applicationText, result, error, busy });
   }, [file, applicationText, result, error, busy]);
+
+  useEffect(() => {
+    if (windowPaste === false) return;
+
+    function onPaste(event: ClipboardEvent) {
+      if (isTypingTarget(event.target)) return;
+      const text = event.clipboardData?.getData("text/plain") ?? "";
+      if (!text.trim()) return;
+      event.preventDefault();
+      setApplicationText(text);
+      textRef.current = text;
+      setResult(null);
+      setError("");
+    }
+
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [windowPaste]);
 
   function takeFile(next: File) {
     setFile(next);

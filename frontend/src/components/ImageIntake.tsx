@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import {
+  clipboardHasText,
   filesFromClipboard,
   filesFromDataTransfer,
   isTypingTarget,
@@ -38,6 +39,8 @@ export function ImageIntake({
 
     function onPaste(event: ClipboardEvent) {
       if (disabled || isTypingTarget(event.target)) return;
+      // PDF / COLA copies often include a bitmap plus the text. Do not steal that.
+      if (clipboardHasText(event.clipboardData)) return;
       const files = filesFromDataTransfer(event.clipboardData);
       if (files.length === 0) return;
       event.preventDefault();

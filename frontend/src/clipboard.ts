@@ -31,8 +31,16 @@ export async function filesFromClipboard(): Promise<File[]> {
   return files;
 }
 
-export function isTypingTarget(target: EventTarget | null): boolean {
+function isEditable(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
   return tag === "TEXTAREA" || tag === "INPUT" || target.isContentEditable;
+}
+
+export function isTypingTarget(target: EventTarget | null): boolean {
+  return isEditable(target) || isEditable(document.activeElement);
+}
+
+export function clipboardHasText(data: DataTransfer | null): boolean {
+  return Boolean(data?.getData("text/plain")?.trim());
 }
