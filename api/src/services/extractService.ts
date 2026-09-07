@@ -81,7 +81,8 @@ async function extractWithOpenAi(
 
   const response = await client.chat.completions.create({
     model: "gpt-5.6-luna",
-    reasoning_effort: "none",
+    // openai@4 types only allow low|medium|high. Luna accepts none.
+    reasoning_effort: "none" as unknown as "low",
     response_format: { type: "json_object" },
     messages: [
       {
